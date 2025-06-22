@@ -1,0 +1,17 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #252156;
+    text-align: center;
+    animation: fadeIn 1.5s ease-in-out;
+    overflow: hidden;
+  }
+  
+  /* Additional styles for elements (same as your original CSS) */
+  

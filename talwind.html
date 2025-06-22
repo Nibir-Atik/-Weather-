@@ -1,0 +1,129 @@
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-r from-blue-400 to-teal-300 text-white font-sans flex justify-center items-center min-h-screen p-6">
+    <div class="text-center">
+      <h1 class="text-4xl font-semibold mb-6 text-shadow-md">🌤️ Weather App</h1>
+  
+      <input type="text" id="locationInput" placeholder="Enter location (e.g. London)" 
+             class="p-3 m-3 text-xl rounded-lg bg-opacity-60 bg-white text-black placeholder-gray-500 shadow-md focus:ring-2 focus:ring-green-400 w-72" />
+  
+      <div class="flex justify-center gap-4">
+        <button onclick="getWeather()" class="p-3 m-3 text-xl bg-green-500 rounded-lg text-white shadow-lg transition-transform transform hover:scale-105 focus:ring-2 focus:ring-green-400">
+          Get Weather
+        </button>
+        <button onclick="getUserLocation()" class="p-3 m-3 text-xl bg-blue-500 rounded-lg text-white shadow-lg transition-transform transform hover:scale-105 focus:ring-2 focus:ring-blue-400">
+          Use My Location
+        </button>
+      </div>
+  
+      <div id="loadingIndicator" class="hidden text-lg mt-4">Loading weather data...</div>
+  
+      <div class="weather hidden bg-white bg-opacity-30 text-black p-6 rounded-lg shadow-2xl max-w-sm mx-auto mt-8">
+        <h2 id="locationName" class="text-2xl mb-2 font-medium"></h2>
+        <img id="weatherIcon" class="w-20 h-20 mx-auto mb-4" src="" alt="Weather icon" />
+        <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+          <p><strong>Temperature:</strong> <span id="tempC"></span>°C</p>
+          <p><strong>Feels Like:</strong> <span id="feelsLike"></span>°C</p>
+          <p><strong>Condition:</strong> <span id="condition"></span></p>
+          <p><strong>Humidity:</strong> <span id="humidity"></span>%</p>
+          <p><strong>Wind Speed:</strong> <span id="wind"></span> kph</p>
+          <p><strong>Visibility:</strong> <span id="visibility"></span> km</p>
+          <p><strong>Pressure:</strong> <span id="pressure"></span> mb</p>
+        </div>
+        <p><strong>Air Quality:</strong> <span id="airQuality" class="inline-block p-2 rounded-lg text-white"></span></p>
+      </div>
+    </div>
+  
+    <script>
+      const key = '9b85ec801dcd43a5abc154309251804'; // Your API key
+  
+      async function fetchWeatherData(location) {
+        showLoading();
+        const url = `http://api.weatherapi.com/v1/current.json?key=${key}&q=${encodeURIComponent(location)}&aqi=yes`;
+  
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          displayWeather(data);
+        } catch (error) {
+          console.error('Error fetching weather data:', error);
+          alert(`Failed to fetch weather data: ${error.message}`);
+        } finally {
+          hideLoading();
+        }
+      }
+  
+      function displayWeather(data) {
+        document.getElementById('locationName').textContent = `${data.location.name}, ${data.location.country}`;
+        document.getElementById('tempC').textContent = data.current.temp_c;
+        document.getElementById('condition').textContent = data.current.condition.text;
+        document.getElementById('feelsLike').textContent = data.current.feelslike_c;
+        document.getElementById('humidity').textContent = data.current.humidity;
+        document.getElementById('wind').textContent = data.current.wind_kph;
+        document.getElementById('visibility').textContent = data.current.vis_km;
+        document.getElementById('pressure').textContent = data.current.pressure_mb;
+        document.getElementById('weatherIcon').src = `https:${data.current.condition.icon}`;
+  
+        const aqi = data.current.air_quality['us-epa-index'];
+        const aqiElement = document.getElementById('airQuality');
+        let aqiClass = '';
+        let aqiText = '';
+  
+        switch(aqi) {
+          case 1: aqiText = 'Good'; aqiClass = 'bg-green-500'; break;
+          case 2: aqiText = 'Moderate'; aqiClass = 'bg-yellow-400'; break;
+          case 3: aqiText = 'Unhealthy for sensitive groups'; aqiClass = 'bg-orange-500'; break;
+          case 4: aqiText = 'Unhealthy'; aqiClass = 'bg-red-500'; break;
+          case 5: aqiText = 'Very Unhealthy'; aqiClass = 'bg-purple-600'; break;
+          case 6: aqiText = 'Hazardous'; aqiClass = 'bg-gray-800'; break;
+          default: aqiText = 'Unknown'; aqiClass = 'bg-gray-400';
+        }
+  
+        aqiElement.textContent = aqiText;
+        aqiElement.className = `inline-block p-3 rounded-lg text-white ${aqiClass}`;
+        document.getElementById('weatherInfo').classList.remove('hidden');
+      }
+  
+      function showLoading() {
+        document.getElementById('loadingIndicator').classList.remove('hidden');
+        document.getElementById('weatherInfo').classList.add('hidden');
+      }
+  
+      function hideLoading() {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+      }
+  
+      function getWeather() {
+        const location = document.getElementById('locationInput').value.trim();
+        if (location) {
+          fetchWeatherData(location);
+        } else {
+          alert('Please enter a location');
+        }
+      }
+  
+      function getUserLocation() {
+        if (navigator.geolocation) {
+          showLoading();
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const { latitude, longitude } = position.coords;
+              fetchWeatherData(`${latitude},${longitude}`);
+            }, 
+            error => {
+              hideLoading();
+              alert(`Unable to retrieve your location: ${error.message}`);
+            },
+            { timeout: 10000 }
+          );
+        } else {
+          alert('Geolocation is not supported by this browser.');
+        }
+      }
+    </script>
+  </body>
+  

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #90caf9, #e0f7fa);
+      padding: 20px;
+      text-align: center;
+      animation: fadeIn 1s ease-in;
+      transition: background 0.5s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .weather {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      animation: slideUp 0.8s ease-in-out;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .weather-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      text-align: left;
+      margin-top: 15px;
+    }
+
+    .weather-details p {
+      margin: 8px 0;
+    }
+
+    #loadingIndicator {
+      display: none;
+      margin: 20px;
+      font-size: 1.2em;
+    }
+    
+    .weather-icon {
+      width: 100px;
+      height: 100px;
+      margin: 10px auto;
+    }
+
+    .aqi-indicator {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 10px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .good { background-color: #4CAF50; }
+    .moderate { background-color: #FFEB3B; color: black; }
+    .unhealthy-sensitive { background-color: #FF9800; }
+    .unhealthy { background-color: #F44336; }
+    .very-unhealthy { background-color: #9C27B0; }
+    .hazardous { background-color: #795548; }
+  </style>
+</head>
+<body>
+  <h1>🌤️ Weather App</h1>
+  <input type="text" id="locationInput" placeholder="Enter location (e.g. London)">
+  <button onclick="getWeather()">Get Weather</button>
+  <button onclick="getUserLocation()">Use My Location</button>
+  <div id="loadingIndicator">Loading weather data...</div>
+
+  <div class="weather" id="weatherInfo" style="display:none;">
+    <h2 id="locationName"></h2>
+    <img id="weatherIcon" class="weather-icon" src="" alt="Weather icon">
+    <div class="weather-details">
+      <p><strong>Temperature:</strong> <span id="tempC"></span>°C</p>
+      <p><strong>Feels Like:</strong> <span id="feelsLike"></span>°C</p>
+      <p><strong>Condition:</strong> <span id="condition"></span></p>
+      <p><strong>Humidity:</strong> <span id="humidity"></span>%</p>
+      <p><strong>Wind Speed:</strong> <span id="wind"></span> kph</p>
+      <p><strong>Air Quality:</strong> <span id="airQuality" class="aqi-indicator"></span></p>
+      <p><strong>Visibility:</strong> <span id="visibility"></span> km</p>
+      <p><strong>Pressure:</strong> <span id="pressure"></span> mb</p>
+    </div>
+  </div>
+
+  <script>
+    const key = '9b85ec801dcd43a5abc154309251804'; // Your API key
+
+    async function fetchWeatherData(location) {
+      showLoading();
+      // Using HTTPS for secure connection
+      //const url = `https://api.weatherapi.com/v1/current.json?key=${key}&q=${location}&aqi=yes`;
+
+      const url = `http://localhost/weather-backend/weather.php?q=${encodeURIComponent(location)}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Display current weather
+        document.getElementById('locationName').textContent = 
+          `${data.location.name}, ${data.location.country}`;
+        document.getElementById('tempC').textContent = data.current.temp_c;
+        document.getElementById('condition').textContent = data.current.condition.text;
+        document.getElementById('feelsLike').textContent = data.current.feelslike_c;
+        document.getElementById('humidity').textContent = data.current.humidity;
+        document.getElementById('wind').textContent = data.current.wind_kph;
+        document.getElementById('visibility').textContent = data.current.vis_km;
+        document.getElementById('pressure').textContent = data.current.pressure_mb;
+        
+        // Set weather icon
+        document.getElementById('weatherIcon').src = `https:${data.current.condition.icon}`;
+        
+        // Air quality information
+        const aqi = data.current.air_quality['us-epa-index'];
+        const aqiElement = document.getElementById('airQuality');
+        let aqiText = '';
+        let aqiClass = '';
+        
+        switch(aqi) {
+          case 1: 
+            aqiText = 'Good';
+            aqiClass = 'good';
+            break;
+          case 2: 
+            aqiText = 'Moderate';
+            aqiClass = 'moderate';
+            break;
+          case 3: 
+            aqiText = 'Unhealthy for sensitive groups';
+            aqiClass = 'unhealthy-sensitive';
+            break;
+          case 4: 
+            aqiText = 'Unhealthy';
+            aqiClass = 'unhealthy';
+            break;
+          case 5: 
+            aqiText = 'Very Unhealthy';
+            aqiClass = 'very-unhealthy';
+            break;
+          case 6: 
+            aqiText = 'Hazardous';
+            aqiClass = 'hazardous';
+            break;
+          default: 
+            aqiText = 'Unknown';
+        }
+        
+        aqiElement.textContent = aqiText;
+        aqiElement.className = `aqi-indicator ${aqiClass}`;
+
+        document.getElementById('weatherInfo').style.display = 'block';
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        alert(`Failed to fetch weather data: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function showLoading() {
+      document.getElementById('loadingIndicator').style.display = 'block';
+      document.getElementById('weatherInfo').style.display = 'none';
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingIndicator').style.display = 'none';
+    }
+
+    function getWeather() {
+      const location = document.getElementById('locationInput').value.trim();
+      if (location) {
+        fetchWeatherData(location);
+      } else {
+        alert('Please enter a location');
+      }
+    }
+
+    function getUserLocation() {
+      if (navigator.geolocation) {
+        showLoading();
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherData(`${latitude},${longitude}`);
+          }, 
+          error => {
+            hideLoading();
+            alert(`Unable to retrieve your location: ${error.message}`);
+          },
+          { timeout: 10000 }
+        );
+      } else {
+        alert('Geolocation is not supported by this browser.');
+      }
+    }
+   
+
+  </script>
+</body>
+</html>
